@@ -1,0 +1,44 @@
+[project]
+name = "mission-control"
+version = "0.1.0"
+description = "A multi-tenant platform for crewing missions"
+requires-python = ">=3.12"
+
+# SciPy is a deliberate exception to "standard library only for the core
+# domain" (docs/DESIGN.md §7.5). It buys the assignment solver: the sparse
+# min-weight bipartite matching in mission_control/solver.py runs the 2000-slot
+# case in tens of milliseconds where a pure-Python Hungarian took minutes.
+# Nothing else in the package depends on it — domain, authz, lifecycle and store
+# are all still standard library.
+dependencies = [
+    # The assignment solver (docs/DESIGN.md §7.5).
+    "numpy>=1.26",
+    "scipy>=1.11",
+    # The HTTP layer (§13). The domain, authz, lifecycle, matching and store
+    # modules import none of these — `python -c "import mission_control.services"`
+    # works with only numpy and scipy present.
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "httpx>=0.27",
+]
+
+[project.scripts]
+mc = "mission_control.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+# scipy and numpy are already required; the tests additionally use
+# scipy.sparse.csgraph as an independent oracle for the solver.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 92
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "UP", "B", "SIM"]
+ignore = [
+    "E501",    # long lines are prose in docstrings, which line-length already bounds
+    "SIM108",  # ternaries are not always clearer than an if
+]
